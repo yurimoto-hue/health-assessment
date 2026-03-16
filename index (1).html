@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>7つの健康評価ツール</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --color-background-primary: #ffffff;
+    --color-background-secondary: #f5f5f3;
+    --color-text-primary: #1a1a1a;
+    --color-text-secondary: #6b6b6b;
+    --color-text-tertiary: #a0a0a0;
+    --color-border-tertiary: rgba(0,0,0,0.12);
+    --color-border-secondary: rgba(0,0,0,0.25);
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+  }
+  body { font-family: var(--font-sans); background: #f0efeb; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 2rem 1rem; }
+  .container { background: var(--color-background-primary); border-radius: 16px; padding: 1.5rem 1rem; max-width: 700px; width: 100%; box-shadow: 0 2px 16px rgba(0,0,0,0.08); }
+  .app-title { text-align: center; font-size: 20px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .step { display: none; }
+  .step.active { display: block; }
+  .progress-bar { display: flex; gap: 6px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .progress-dot { width: 32px; height: 6px; border-radius: 3px; background: var(--color-border-tertiary); transition: background 0.3s; }
+  .progress-dot.done { background: #1D9E75; }
+  .progress-dot.active { background: #3266ad; }
+  .category-header { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; }
+  .cat-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .cat-title { font-size: 18px; font-weight: 500; color: var(--color-text-primary); }
+  .cat-desc { font-size: 13px; color: var(--color-text-secondary); margin-top: 2px; }
+  .question-block { background: var(--color-background-secondary); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 12px; }
+  .q-label { font-size: 14px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 10px; line-height: 1.5; }
+  .options { display: flex; flex-direction: column; gap: 8px; }
+  .option-btn { background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--color-text-primary); cursor: pointer; text-align: left; transition: all 0.15s; display: flex; justify-content: space-between; align-items: center; }
+  .option-btn:hover { border-color: #3266ad; background: #E6F1FB; color: #0C447C; }
+  .option-btn.selected { border-color: #1D9E75; background: #E1F5EE; color: #085041; }
+  .option-btn.selected .pts { color: #0F6E56; font-weight: 500; }
+  .pts { font-size: 12px; color: var(--color-text-tertiary); white-space: nowrap; margin-left: 8px; }
+  .nav-row { display: flex; gap: 10px; margin-top: 1.25rem; }
+  .btn-next { flex: 1; padding: 12px; border-radius: 8px; border: 0.5px solid #1D9E75; background: #1D9E75; color: white; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-next:hover { background: #0F6E56; }
+  .btn-next:disabled { opacity: 0.4; cursor: default; }
+  .btn-prev { padding: 12px 20px; border-radius: 8px; border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); font-size: 14px; cursor: pointer; }
+  .btn-prev:hover { background: var(--color-background-secondary); }
+  .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .result-card { background: var(--color-background-secondary); border-radius: 10px; padding: 12px; text-align: center; }
+  .rc-icon { font-size: 20px; margin-bottom: 4px; }
+  .rc-name { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 6px; }
+  .rc-score { font-size: 22px; font-weight: 500; }
+  .rc-bar { height: 5px; border-radius: 3px; background: var(--color-border-tertiary); margin-top: 6px; overflow: hidden; }
+  .rc-fill { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
+  .rc-label { font-size: 11px; margin-top: 4px; font-weight: 500; }
+  .radar-wrap { position: relative; width: 100%; max-width: 340px; height: 280px; margin: 0 auto 1.5rem; }
+  .total-card { background: var(--color-background-secondary); border-radius: 12px; padding: 1.25rem; text-align: center; margin-bottom: 1.25rem; }
+  .total-score { font-size: 48px; font-weight: 500; }
+  .total-label { font-size: 14px; color: var(--color-text-secondary); margin-top: 4px; }
+  .advice-block { border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 10px; border-left: 3px solid; }
+  .retry-btn { width: 100%; padding: 12px; border-radius: 8px; border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-primary); font-size: 14px; cursor: pointer; margin-top: 6px; }
+  .retry-btn:hover { background: var(--color-background-secondary); }
+  .step-counter { font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="app-title">7つの健康評価</div>
+  <div class="progress-bar" id="progressBar"></div>
+  <div id="stepsContainer"></div>
+  <div class="step" id="resultStep">
+    <div class="total-card">
+      <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:6px;">総合スコア</div>
+      <div class="total-score" id="totalScore"></div>
+      <div style="font-size:13px;color:var(--color-text-secondary);">/ 70点</div>
+      <div class="total-label" id="totalLabel"></div>
+    </div>
+    <div class="radar-wrap">
+      <canvas id="radarChart"></canvas>
+    </div>
+    <div class="result-grid" id="resultGrid"></div>
+    <div id="adviceBlocks"></div>
+    <button class="retry-btn" onclick="restart()">もう一度評価する</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const categories = [
+  {
+    id: 'water', name: 'お水', icon: '💧', color: '#378ADD', fillColor: '#E6F1FB',
+    questions: [
+      { label: '1日の水の摂取量はどのくらいですか？', options: [
+        { text: '毎日2リットル以上飲んでいる', pts: 5 },
+        { text: '毎日1〜1.5リットル程度飲んでいる', pts: 3 },
+        { text: '毎日1リットル以下しか飲んでいない', pts: 1 }
+      ]},
+      { label: '水分補給のタイミングは？', options: [
+        { text: '喉が渇く前に意識的に補給している', pts: 2 },
+        { text: '喉が渇いてから補給する', pts: 1 }
+      ]},
+      { label: '普段飲む水の温度は？', options: [
+        { text: '常温で飲んでいる', pts: 2 },
+        { text: '少し冷たい程度（冷やしすぎていない）', pts: 1 },
+        { text: '冷たい水やアイスが多い', pts: 0 }
+      ]},
+      { label: '主に飲んでいる飲み物は？', options: [
+        { text: '主にお水を飲んでいる', pts: 1 },
+        { text: '砂糖入り飲料やアルコールが多い', pts: 0 }
+      ]}
+    ]
+  },
+  {
+    id: 'stress', name: 'ストレス', icon: '🧘', color: '#D4537E', fillColor: '#FBEAF0',
+    questions: [
+      { label: '自分のストレスレベルをどの程度把握していますか？', options: [
+        { text: 'よく理解しており、変動にも気づける', pts: 2 },
+        { text: '一応把握しているが、細かい変動は気づかない', pts: 1 },
+        { text: 'ほとんど把握していない', pts: 0 }
+      ]},
+      { label: 'ストレス解消法を実践していますか？', options: [
+        { text: '趣味・旅行・散歩など定期的に実践している', pts: 3 },
+        { text: '時々実践しているが定期的ではない', pts: 1 },
+        { text: 'ほとんど実践していない', pts: 0 }
+      ]},
+      { label: '運動の習慣はありますか？', options: [
+        { text: '週3回以上定期的に運動している', pts: 2 },
+        { text: '週1〜2回運動している', pts: 1 },
+        { text: 'ほとんど運動していない', pts: 0 }
+      ]},
+      { label: '睡眠の質はどうですか？', options: [
+        { text: '毎晩7〜8時間の質の良い睡眠がとれている', pts: 2 },
+        { text: '5〜6時間程度だが、質は良い', pts: 1 },
+        { text: '5時間以下、または質が悪い', pts: 0 }
+      ]},
+      { label: '食生活のバランスは？', options: [
+        { text: '野菜・果物・たんぱく質を含むバランスの良い食事をしている', pts: 1 },
+        { text: '食生活が不規則または偏っている', pts: 0 }
+      ]}
+    ]
+  },
+  {
+    id: 'gut', name: '腸内環境', icon: '🥗', color: '#1D9E75', fillColor: '#E1F5EE',
+    questions: [
+      { label: '食物繊維（野菜・全粒穀物）の摂取量は？', options: [
+        { text: '毎食に十分な量（サラダ1杯/120g程度）', pts: 2 },
+        { text: '1日1〜2食で摂取している', pts: 1 },
+        { text: 'ほとんど摂取していない', pts: 0 }
+      ]},
+      { label: '発酵食品（ヨーグルト・納豆・キムチなど）の摂取は？', options: [
+        { text: '毎日食べている', pts: 2 },
+        { text: '週3〜4回食べている', pts: 1 },
+        { text: 'ほとんど食べていない', pts: 0 }
+      ]},
+      { label: '1日の水分摂取量は？', options: [
+        { text: '2〜3リットル飲んでいる', pts: 2 },
+        { text: '1〜2リットル飲んでいる', pts: 1 },
+        { text: '1リットル以下しか飲んでいない', pts: 0 }
+      ]},
+      { label: '排便の状態は？', options: [
+        { text: '毎日スムーズな排便がある', pts: 2 },
+        { text: '週3〜4回ある', pts: 1 },
+        { text: '不規則で便秘・下痢が多い', pts: 0 }
+      ]},
+      { label: 'お腹のガス・膨満感はありますか？', options: [
+        { text: 'ほとんど感じない', pts: 2 },
+        { text: 'たまに感じるが気にならない程度', pts: 1 },
+        { text: '頻繁に感じる', pts: 0 }
+      ]}
+    ]
+  },
+  {
+    id: 'temp', name: '体温', icon: '🌡️', color: '#E24B4A', fillColor: '#FCEBEB',
+    questions: [
+      { label: '平均体温はどのくらいですか？', options: [
+        { text: '36.5〜37.0℃の範囲にある', pts: 4 },
+        { text: '36.0〜36.4℃ または 37.1〜37.3℃', pts: 2 },
+        { text: '36.0℃未満 または 37.4℃以上', pts: 0 }
+      ]},
+      { label: '冷えを感じることはありますか？', options: [
+        { text: '冷えを感じることはない', pts: 3 },
+        { text: 'たまに感じるが生活に支障なし', pts: 2 },
+        { text: '頻繁に感じ、生活に支障がある', pts: 0 }
+      ]},
+      { label: '発熱の頻度は？', options: [
+        { text: 'ほとんど発熱しない', pts: 3 },
+        { text: '年に1〜2回発熱する', pts: 1 },
+        { text: '年に3回以上発熱する', pts: 0 }
+      ]}
+    ]
+  },
+  {
+    id: 'sleep', name: '睡眠', icon: '🌙', color: '#7F77DD', fillColor: '#EEEDFE',
+    questions: [
+      { label: '1日の睡眠時間はどのくらいですか？', options: [
+        { text: '7〜8時間', pts: 2 },
+        { text: '6〜7時間', pts: 1 },
+        { text: '6時間未満または8時間以上', pts: 0 }
+      ]},
+      { label: '眠りにつくまでどのくらいかかりますか？', options: [
+        { text: '30分以内に入眠できる', pts: 2 },
+        { text: '30分〜1時間程度', pts: 1 },
+        { text: '1時間以上かかることが多い', pts: 0 }
+      ]},
+      { label: '朝起きたとき、疲れはとれていますか？', options: [
+        { text: '疲れが十分とれていると感じる', pts: 2 },
+        { text: 'やや疲れが残っている', pts: 1 },
+        { text: '疲れがとれていないと感じる', pts: 0 }
+      ]},
+      { label: '夜中に目が覚めることはありますか？', options: [
+        { text: 'ほとんど目覚めない', pts: 2 },
+        { text: '1回目覚めることがある', pts: 1 },
+        { text: '2回以上目覚めることがある', pts: 0 }
+      ]},
+      { label: '日中に眠気を感じますか？', options: [
+        { text: 'ほとんど感じない', pts: 2 },
+        { text: 'やや感じるが生活に支障なし', pts: 1 },
+        { text: '頻繁に感じ、生活に支障がある', pts: 0 }
+      ]}
+    ]
+  },
+  {
+    id: 'diet', name: '食事', icon: '🍱', color: '#BA7517', fillColor: '#FAEEDA',
+    questions: [
+      { label: '食事のバランスはどうですか？', options: [
+        { text: '毎日、野菜・果物・たんぱく質・炭水化物をバランスよく食べている', pts: 3 },
+        { text: '時々バランスの良い食事をしている', pts: 2 },
+        { text: 'バランスの取れていない食事が多い', pts: 1 },
+        { text: 'ほとんどバランスの良い食事はしていない', pts: 0 }
+      ]},
+      { label: '1日の食事回数は？', options: [
+        { text: '3食しっかり食べている', pts: 2 },
+        { text: '2食食べている', pts: 1 },
+        { text: '1食または食事を抜くことが多い', pts: 0 }
+      ]},
+      { label: '間食にはどのようなものを選んでいますか？', options: [
+        { text: 'ナッツ・フルーツなど健康的なものを選んでいる', pts: 2 },
+        { text: '時々健康的な間食を選んでいる', pts: 1 },
+        { text: 'ジャンクフードや甘いものが多い', pts: 0 }
+      ]},
+      { label: '普段の調理法は？', options: [
+        { text: '蒸し料理・煮物・焼き物などヘルシーな調理法を選んでいる', pts: 2 },
+        { text: '時々ヘルシーな調理法を選んでいる', pts: 1 },
+        { text: '揚げ物や高脂肪の調理法が多い', pts: 0 }
+      ]},
+      { label: '外食の頻度は？', options: [
+        { text: '週1回以下', pts: 1 },
+        { text: '週2回以上', pts: 0 }
+      ]}
+    ]
+  },
+  {
+    id: 'exercise', name: '運動', icon: '🏃', color: '#639922', fillColor: '#EAF3DE',
+    questions: [
+      { label: '週に何回運動しますか？', options: [
+        { text: '週5回以上', pts: 3 },
+        { text: '週3〜4回', pts: 2 },
+        { text: '週1〜2回', pts: 1 },
+        { text: 'ほとんどしていない', pts: 0 }
+      ]},
+      { label: '1回の運動時間はどのくらいですか？', options: [
+        { text: '60分以上', pts: 2 },
+        { text: '30〜60分', pts: 1 },
+        { text: '30分未満', pts: 0 }
+      ]},
+      { label: '運動の種類はどのくらい多様ですか？', options: [
+        { text: '有酸素・筋トレ・ストレッチなどさまざまな運動をしている', pts: 2 },
+        { text: '2種類の運動を取り入れている', pts: 1 },
+        { text: '同じ運動ばかりしている', pts: 0 }
+      ]},
+      { label: '運動の強度は？', options: [
+        { text: '高強度の運動を定期的に行っている', pts: 2 },
+        { text: '中程度の強度の運動をしている', pts: 1 },
+        { text: '軽い運動のみ', pts: 0 }
+      ]},
+      { label: '継続期間はどのくらいですか？', options: [
+        { text: '3ヶ月以上継続している', pts: 1 },
+        { text: '3ヶ月未満', pts: 0 }
+      ]}
+    ]
+  }
+];
+
+const maxScores = [10, 10, 10, 10, 10, 10, 10];
+let answers = categories.map(c => c.questions.map(() => null));
+let currentStep = 0;
+let radarChart = null;
+
+function getScore(catIdx) {
+  return answers[catIdx].reduce((sum, v) => sum + (v !== null ? v : 0), 0);
+}
+
+function getLabel(score, max) {
+  const pct = score / max;
+  if (pct >= 0.9) return { text: '非常に良好', color: '#1D9E75' };
+  if (pct >= 0.7) return { text: '良好', color: '#639922' };
+  if (pct >= 0.5) return { text: '改善の余地あり', color: '#BA7517' };
+  return { text: '要改善', color: '#E24B4A' };
+}
+
+function buildSteps() {
+  const container = document.getElementById('stepsContainer');
+  container.innerHTML = '';
+  const bar = document.getElementById('progressBar');
+  bar.innerHTML = '';
+  categories.forEach((cat, ci) => {
+    const dot = document.createElement('div');
+    dot.className = 'progress-dot';
+    dot.id = `dot-${ci}`;
+    bar.appendChild(dot);
+    const step = document.createElement('div');
+    step.className = 'step';
+    step.id = `step-${ci}`;
+    const nums = ['①','②','③','④','⑤','⑥','⑦'];
+    let html = `<div class="step-counter">カテゴリー ${ci+1} / ${categories.length}</div>
+      <div class="category-header">
+        <div class="cat-icon" style="background:${cat.fillColor}">${cat.icon}</div>
+        <div><div class="cat-title">${nums[ci]}${cat.name}の評価</div>
+        <div class="cat-desc">各質問に当てはまるものを選んでください</div></div>
+      </div>`;
+    cat.questions.forEach((q, qi) => {
+      html += `<div class="question-block">
+        <div class="q-label">${qi+1}. ${q.label}</div>
+        <div class="options">`;
+      q.options.forEach(opt => {
+        html += `<button class="option-btn" onclick="selectOption(${ci},${qi},${opt.pts},this)">
+          <span>${opt.text}</span>
+          <span class="pts">${opt.pts}点</span>
+        </button>`;
+      });
+      html += `</div></div>`;
+    });
+    html += `<div class="nav-row">`;
+    if (ci > 0) html += `<button class="btn-prev" onclick="prevStep()">← 戻る</button>`;
+    html += `<button class="btn-next" id="next-${ci}" onclick="nextStep(${ci})" disabled>${ci < categories.length-1 ? '次へ →' : '結果を見る'}</button>
+    </div>`;
+    step.innerHTML = html;
+    container.appendChild(step);
+  });
+  showStep(0);
+}
+
+function showStep(idx) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  const el = idx < categories.length ? document.getElementById(`step-${idx}`) : document.getElementById('resultStep');
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.progress-dot').forEach((d, i) => {
+    d.classList.remove('done','active');
+    if (i < idx) d.classList.add('done');
+    else if (i === idx) d.classList.add('active');
+  });
+}
+
+function selectOption(catIdx, qIdx, pts, btn) {
+  answers[catIdx][qIdx] = pts;
+  const block = btn.closest('.question-block');
+  block.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  const allAnswered = answers[catIdx].every(v => v !== null);
+  const nextBtn = document.getElementById(`next-${catIdx}`);
+  if (nextBtn) nextBtn.disabled = !allAnswered;
+}
+
+function nextStep(catIdx) {
+  currentStep = catIdx + 1;
+  if (currentStep >= categories.length) {
+    showResults();
+  } else {
+    showStep(currentStep);
+  }
+}
+
+function prevStep() {
+  currentStep = Math.max(0, currentStep - 1);
+  showStep(currentStep);
+}
+
+function showResults() {
+  showStep(categories.length);
+  const scores = categories.map((_, i) => getScore(i));
+  const total = scores.reduce((a,b) => a+b, 0);
+  document.getElementById('totalScore').textContent = total;
+  const totalPct = total / 70;
+  let totalLabelText = totalPct >= 0.9 ? '総合的に非常に良好な健康状態です！' :
+    totalPct >= 0.7 ? '良好な健康状態です。引き続き維持しましょう。' :
+    totalPct >= 0.5 ? '改善できる項目があります。少しずつ取り組みましょう。' :
+    '健康習慣の見直しが必要です。一緒に改善していきましょう。';
+  document.getElementById('totalLabel').textContent = totalLabelText;
+
+  const grid = document.getElementById('resultGrid');
+  grid.innerHTML = '';
+  categories.forEach((cat, i) => {
+    const lbl = getLabel(scores[i], maxScores[i]);
+    grid.innerHTML += `<div class="result-card">
+      <div class="rc-icon">${cat.icon}</div>
+      <div class="rc-name">${cat.name}</div>
+      <div class="rc-score" style="color:${lbl.color}">${scores[i]}</div>
+      <div style="font-size:10px;color:var(--color-text-tertiary)">/ ${maxScores[i]}点</div>
+      <div class="rc-bar"><div class="rc-fill" style="width:${Math.round(scores[i]/maxScores[i]*100)}%;background:${lbl.color}"></div></div>
+      <div class="rc-label" style="color:${lbl.color}">${lbl.text}</div>
+    </div>`;
+  });
+
+  const advice = document.getElementById('adviceBlocks');
+  advice.innerHTML = '';
+  const adviceMap = {
+    water: '水分補給の量とタイミングを意識しましょう。常温水をこまめに飲むことが効果的です。',
+    stress: 'ストレス解消法を日課に取り入れ、睡眠と食事の質を高めましょう。',
+    gut: '食物繊維と発酵食品を日常的に取り入れ、腸内環境を整えましょう。',
+    temp: '体を温める習慣（入浴・温かい食事）を取り入れましょう。冷えの改善が免疫力向上にもつながります。',
+    sleep: '就寝・起床時間を一定にして、睡眠リズムを整えることが大切です。',
+    diet: '食事のバランスを意識し、加工食品や外食を減らしていきましょう。',
+    exercise: '週3回以上、30分程度の運動を目標に始めましょう。種類を増やすと効果的です。'
+  };
+  categories.forEach((cat, i) => {
+    if (scores[i] / maxScores[i] < 0.6) {
+      advice.innerHTML += `<div class="advice-block" style="background:${cat.fillColor};border-color:${cat.color}">
+        <div style="font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:4px">${cat.icon} ${cat.name}の改善ポイント</div>
+        <div style="font-size:13px;color:#6b6b6b;line-height:1.6">${adviceMap[cat.id]}</div>
+      </div>`;
+    }
+  });
+
+  setTimeout(() => {
+    if (radarChart) radarChart.destroy();
+    radarChart = new Chart(document.getElementById('radarChart'), {
+      type: 'radar',
+      data: {
+        labels: categories.map(c => c.name),
+        datasets: [{
+          label: 'スコア',
+          data: scores,
+          backgroundColor: 'rgba(29,158,117,0.2)',
+          borderColor: '#1D9E75',
+          borderWidth: 2,
+          pointBackgroundColor: '#1D9E75',
+          pointRadius: 4
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          r: {
+            min: 0, max: 10,
+            ticks: { stepSize: 2, font: { size: 11 }, color: '#888' },
+            grid: { color: 'rgba(0,0,0,0.1)' },
+            pointLabels: { font: { size: 12 }, color: '#444' }
+          }
+        }
+      }
+    });
+  }, 100);
+}
+
+function restart() {
+  answers = categories.map(c => c.questions.map(() => null));
+  currentStep = 0;
+  buildSteps();
+}
+
+buildSteps();
+</script>
+</body>
+</html>
